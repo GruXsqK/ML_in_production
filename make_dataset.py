@@ -1,9 +1,14 @@
 import time
 from datetime import datetime, timedelta
 import pandas as pd
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def time_format(sec):
+    """
+    Time formating
+    """
     return str(timedelta(seconds=sec))
 
 
@@ -13,6 +18,10 @@ def build_dataset_raw(churned_start_date='2019-01-01',
                       raw_data_path='train/',
                       dataset_path='dataset/',
                       mode='train'):
+    """
+    Build raw dataset from sets of packed .csv
+    """
+
     start_t = time.time()
 
     sample = pd.read_csv('{}sample.csv'.format(raw_data_path), sep=';', na_values=['\\N', 'None'], encoding='utf-8')
@@ -48,8 +57,9 @@ def build_dataset_raw(churned_start_date='2019-01-01',
             lambda x: x.days)
         df_features = data[['user_id']].drop_duplicates().reset_index(drop=True)
 
-        # Для каждого признака создадим признаки для каждого из времененно интервала (в нашем примере 4 интервала по 7 дней)
-        features = list(set(data.columns) - set(['user_id', 'login_last_dt', 'log_dt', 'day_num_before_churn']))
+        # Для каждого признака создадим признаки для каждого из времененно интервала
+        # (в нашем примере 4 интервала по 7 дней)
+        features = list(set(data.columns) - {'user_id', 'login_last_dt', 'log_dt', 'day_num_before_churn'})
         print('Processing with features:', features)
         for feature in features:
             for i, inter in enumerate(inter_list):

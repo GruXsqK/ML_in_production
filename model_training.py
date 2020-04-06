@@ -1,15 +1,16 @@
-import pandas as pd
-import numpy as np
 import xgboost as xgb
-from matplotlib import pyplot as plt
+import pickle
+
+from sklearn.metrics import precision_score, recall_score, f1_score, log_loss, roc_auc_score
+
 import warnings
 warnings.filterwarnings("ignore")
 
-from sklearn.metrics import precision_score, recall_score, f1_score, precision_recall_curve, roc_curve, auc, \
-                            log_loss, roc_auc_score, average_precision_score, confusion_matrix
-
 
 def evaluation(y_true, y_pred, y_prob):
+    """
+    All score models
+    """
     precision = precision_score(y_true=y_true, y_pred=y_pred)
     recall = recall_score(y_true=y_true, y_pred=y_pred)
     f1 = f1_score(y_true=y_true, y_pred=y_pred)
@@ -23,32 +24,30 @@ def evaluation(y_true, y_pred, y_prob):
     return precision, recall, f1, ll, roc_auc
 
 
-def xgb_fit_predict(X_train, y_train, X_test, y_test):
-    clf = xgb.XGBClassifier(max_depth=3,
-                            n_estimators=100,
-                            learning_rate=0.1,
-                            nthread=5,
-                            subsample=1.,
-                            colsample_bytree=0.5,
-                            min_child_weight = 3,
-                            reg_alpha=0.,
-                            reg_lambda=0.,
-                            seed=42,
-                            missing=1e10)
-
-    clf.fit(X_train, y_train, eval_metric='aucpr', verbose=10)
-    predict_proba_test = clf.predict_proba(X_test)
-    predict_test = clf.predict(X_test)
+def model_fit_predict(clf, x_train, y_train, x_test, y_test):
+    """
+    Fit model and predict target
+    """
+    clf.fit(x_train, y_train)
+    predict_proba_test = clf.predict_proba(x_test)
+    predict_test = clf.predict(x_test)
     precision_test, recall_test, f1_test, log_loss_test, roc_auc_test = \
         evaluation(y_test, predict_test, predict_proba_test[:, 1])
     return clf
 
 
-def plot_importance(importance, features, name):
-    fi = pd.DataFrame(list(zip(features, importance))).sort_values(by=1, ascending=False)
-    plt.figure(figsize=(16,6))
-    plt.bar(range(fi.shape[0]), fi[1], align='center')
-    plt.xticks(range(fi.shape[0]), fi[0], rotation=90)
-    plt.title(name)
-    plt.show()
-    return fi
+def get_fitted_model(x_train, y_train, n_estimators=500, learning_rate=0.1, random_state=21, n_jobs=-1, max_depth=5):
+    """
+    Get fitted model XGBoost
+    """
+    clf = xgb.XGBClassifier(n_estimators=n_estimators,
+                            learning_rate=learning_rate,
+                            random_state=random_state,
+                            n_jobs=n_jobs,
+                            max_depth=max_depth)
+    return clf.fit(x_train, y_train)
+
+
+def save_model(clf, model_path='models/', name='model_xgb_final'):
+    with open(f'{model_path}{name}.pcl', 'wb') as f:
+        pickle.dump(clf, f)
